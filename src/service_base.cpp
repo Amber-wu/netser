@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <string.h>
+#include <errno.h>
 
 #include "service_base.h"
 #include "utils.h"
@@ -13,6 +14,7 @@ service_base::service_base(unsigned long ip, int port)
 {
     this->ip = ip;
     this->port = port;
+    this->listen_num = SERVICE_DEF_CLIENT_NUM;
     this->init_flag = 0;
 }
 
@@ -44,11 +46,28 @@ int service_base::init()
         goto bind_err;
     }
 
+    if (RET_OK != set_fd_nonblocking(fd))
+    {
+        PMD("set socket flags failed\n");
+        ret = RET_ERR;
+        goto set_fd_nonblocking_err;
+    }
+
+    ret = listen(fd, this->listen_num);
+    if (ret)
+    {
+        PMD("listen failed, %s(%d)\n", strerror(errno), errno);
+        ret = RET_ERR;
+        goto listen_err;
+    }
+
     this->fd = fd;
     this->init_flag = 1;
 
     return RET_OK;
 
+listen_err:
+set_fd_nonblocking_err:
 bind_err:
     CLOSE_FD(fd);
 
@@ -65,6 +84,12 @@ int service_base::start()
         return RET_ERR;
     }
 
+    return RET_OK;
+}
+
+int service_base::set_listen_num(int listen_num)
+{
+    this->listen_num = listen_num < SERVICE_MAX_CLIENT_NUM ? listen_num : SERVICE_MAX_CLIENT_NUM;
     return RET_OK;
 }
 

@@ -14,42 +14,58 @@ int main(int argc, char *argv[])
 {
 	server_context *p_ctx = NULL;
 	p_ctx = (server_context *)malloc(sizeof(server_context));
-	if (!p_ctx)
-	{
+	if (!p_ctx) {
 		printf("malloc failed");
+		goto err_exit;
 	}
+	memset(p_ctx, 0, sizeof(server_context));
 
 	serverInit(p_ctx);
 	serverRun(p_ctx);
 	serverExit(p_ctx);
 
-exit:
+	return RET_OK;
+
+err_exit:
 	if (p_ctx)
 	{
 		free(p_ctx);
 		p_ctx = NULL;
 	}
 
-	return RET_OK;
+	return RET_ERR;
 }
 
-int serverInit(server_context *ctx)
-{
-    class service_base *sock_test = NULL;
+int serverInit(server_context *ctx) {
+	class service_base *sock_test = NULL;
 
-	if (!ctx)
-	{
+	if (!ctx) {
 		return RET_ERR;
 	}
 
 	ctx->listener = new listener(MAX_LISTEN_FD);
+	if (!ctx->listener) {
+		PMD("new listener failed\n");
+		goto listener_create_failed;
+	}
 
-    // sock test
-	sock_test = new class service_base(INADDR_ANY, 5012);
+	sock_test = new service_base(INADDR_ANY, 5012);
+	if (sock_test == NULL)
+	{
+		PMD("net service_base failed\n");
+		goto service_sock_test_failed;
+	}
 	ctx->listener->add_service(sock_test);
     PMD("ADD sock test\n");
 
 	return RET_OK;
+
+service_sock_test_failed:
+	delete ctx->listener;
+	ctx->listener = NULL;
+
+listener_create_failed:
+	return RET_ERR;
 }
 
 int serverRun(server_context *srv_ctx)
@@ -59,5 +75,6 @@ int serverRun(server_context *srv_ctx)
 
 int serverExit(server_context *srv_ctx)
 {
+
 	return RET_OK;
 }

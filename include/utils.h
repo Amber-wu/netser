@@ -21,4 +21,15 @@ enum return_v {
 	}\
 } while(0);
 
+#define SAFE_FREE(ptr) do {\
+    if (ptr)\
+    {\
+        free(ptr);\
+		ptr = NULL;\
+    }\
+} while(0);
+
+RET_T set_fd_blocking(int fd);
+RET_T set_fd_nonblocking(int fd);
+
 #endif // NETSER_UTILS_H
