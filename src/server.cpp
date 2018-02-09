@@ -12,35 +12,34 @@
 
 int main(int argc, char *argv[])
 {
+	int ret = RET_OK;
 	server_context *p_ctx = NULL;
-	p_ctx = (server_context *)malloc(sizeof(server_context));
-	if (!p_ctx) {
-		printf("malloc failed");
-		goto err_exit;
-	}
-	memset(p_ctx, 0, sizeof(server_context));
 
-	serverInit(p_ctx);
-	serverRun(p_ctx);
-	serverExit(p_ctx);
+	ret = serverInit(p_ctx);
 
-	return RET_OK;
-
-err_exit:
-	if (p_ctx)
+	if (RET_OK == ret)
 	{
-		free(p_ctx);
-		p_ctx = NULL;
+		ret = serverRun(p_ctx);
 	}
 
-	return RET_ERR;
+	if (RET_OK == ret)
+	{
+		ret = serverExit(p_ctx);
+	}
+
+	return ret;
 }
 
 int serverInit(server_context *ctx) {
 	class service_base *sock_test = NULL;
 
 	if (!ctx) {
-		return RET_ERR;
+		ctx = (server_context *)malloc(sizeof(server_context));
+		if (!ctx) {
+			PMD("malloc failed");
+			goto malloc_failed;
+		}
+		memset(ctx, 0, sizeof(server_context));
 	}
 
 	ctx->listener = new listener(MAX_LISTEN_FD);
@@ -65,6 +64,14 @@ service_sock_test_failed:
 	ctx->listener = NULL;
 
 listener_create_failed:
+	if (ctx)
+	{
+		free(ctx);
+		ctx = NULL;
+	}
+
+malloc_failed:
+
 	return RET_ERR;
 }
 
